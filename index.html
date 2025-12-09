@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIMPO: Ultimate Duel (Cloud Connected)</title>
+    <title>SIMPO: Ultimate Duel (Split Leaderboard)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -92,10 +92,10 @@
         
         /* UI Components */
         .glass-panel {
-            background: rgba(15, 23, 42, 0.9);
+            background: rgba(15, 23, 42, 0.95);
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(56, 189, 248, 0.3);
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+            border: 2px solid rgba(56, 189, 248, 0.4);
+            box-shadow: 0 0 30px rgba(0,0,0,0.8);
         }
 
         .mode-card {
@@ -211,6 +211,33 @@
         .control-btn {
             @apply w-10 h-10 bg-slate-800 border border-slate-600 rounded-full flex items-center justify-center hover:bg-slate-700 transition shadow-lg;
         }
+
+        /* Leaderboard Table */
+        .rank-1 { color: #fbbf24; text-shadow: 0 0 10px #fbbf24; }
+        .rank-2 { color: #94a3b8; text-shadow: 0 0 10px #94a3b8; }
+        .rank-3 { color: #b45309; text-shadow: 0 0 10px #b45309; }
+
+        /* Rank Tabs */
+        .rank-tab {
+            @apply px-6 py-3 rounded-t-lg font-bold text-sm tracking-widest transition-all border-b-4 border-slate-700 text-slate-500 hover:text-white bg-slate-800/50 uppercase flex-1;
+        }
+        .rank-tab.active-single {
+            @apply text-cyan-400 border-cyan-400 bg-slate-800 shadow-[0_-5px_15px_rgba(34,211,238,0.2)];
+        }
+        .rank-tab.active-multi {
+            @apply text-red-400 border-red-500 bg-slate-800 shadow-[0_-5px_15px_rgba(239,68,68,0.2)];
+        }
+
+        /* Leaderboard Rows */
+        .leaderboard-row {
+            @apply border-b border-slate-600 bg-slate-800/40 hover:bg-slate-700/60 transition-colors duration-200;
+        }
+        .leaderboard-row:last-child {
+            border-bottom: none;
+        }
+        .leaderboard-cell {
+            @apply p-4 border-r border-slate-700/50 last:border-r-0;
+        }
     </style>
 </head>
 <body class="h-screen w-full bg-black overflow-hidden relative" onload="initGameData()">
@@ -246,8 +273,9 @@
 
         <div class="relative z-10 text-center w-full max-w-5xl px-4">
             <h1 class="text-6xl md:text-8xl font-moba text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-2 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">SIMPO</h1>
-            <p class="text-xl text-slate-300 mb-12 tracking-[0.3em] uppercase">Ultimate Edition</p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <p class="text-xl text-slate-300 mb-8 tracking-[0.3em] uppercase">Ultimate Edition</p>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 <div onclick="selectMode('single')" class="mode-card glass-panel p-8 rounded-2xl border border-slate-700 group">
                     <div class="w-24 h-24 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-slate-600 group-hover:border-cyan-400">
                         <i class="fas fa-user-astronaut text-4xl text-cyan-400"></i>
@@ -262,6 +290,57 @@
                     <h2 class="text-3xl font-moba text-white mb-2">PVP DUEL (1 vs 1)</h2>
                     <p class="text-slate-400 text-sm">Duel di satu layar IFP.</p>
                 </div>
+            </div>
+
+            <!-- Leaderboard Button -->
+            <button onclick="showLeaderboard()" class="px-8 py-3 bg-slate-800 border border-yellow-600 text-yellow-400 rounded-full font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2 mx-auto shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                <i class="fas fa-trophy"></i> HALL OF FAME
+            </button>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD SCREEN (Updated) -->
+    <div id="screen-leaderboard" class="hidden absolute z-[60] inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 backdrop-blur-sm">
+        <div class="w-full max-w-4xl glass-panel p-1 rounded-2xl relative flex flex-col max-h-[90vh] border-2 border-slate-500 shadow-2xl">
+            <!-- Header -->
+            <div class="flex justify-between items-center p-6 pb-4 bg-slate-900/80 rounded-t-xl border-b border-slate-600">
+                <div class="flex items-center gap-3">
+                    <i class="fas fa-trophy text-4xl text-yellow-400 drop-shadow-[0_0_10px_rgba(250,204,21,0.5)]"></i>
+                    <div>
+                        <h2 class="text-3xl font-moba text-white tracking-widest">HALL OF FAME</h2>
+                        <p id="leaderboard-subtitle" class="text-xs text-slate-400 font-mono uppercase tracking-widest">Global Rankings</p>
+                    </div>
+                </div>
+                <button onclick="hideLeaderboard()" class="w-10 h-10 flex items-center justify-center rounded-full bg-slate-800 hover:bg-red-900/50 text-slate-400 hover:text-red-400 transition border border-slate-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="flex px-4 pt-4 gap-2 bg-slate-900/50">
+                <button onclick="fetchRankData('single')" id="tab-single" class="rank-tab active-single rounded-t-xl border-x border-t border-slate-600">
+                    <i class="fas fa-user-astronaut mr-2"></i>SOLO RANK
+                </button>
+                <button onclick="fetchRankData('multi')" id="tab-multi" class="rank-tab rounded-t-xl border-x border-t border-slate-600">
+                    <i class="fas fa-users mr-2"></i>DUEL RANK
+                </button>
+            </div>
+
+            <!-- Table Container -->
+            <div class="flex-grow overflow-y-auto custom-scrollbar bg-slate-900 m-4 mt-0 rounded-b-xl border border-slate-600 h-[400px]">
+                <table class="w-full text-left border-collapse">
+                    <thead class="text-slate-400 bg-slate-800 sticky top-0 z-10 text-xs font-bold uppercase tracking-wider shadow-md">
+                        <tr>
+                            <th class="p-4 border-r border-b border-slate-600 w-20 text-center">#</th>
+                            <th class="p-4 border-r border-b border-slate-600">Player Name</th>
+                            <th class="p-4 border-r border-b border-slate-600 text-right w-32">Score</th>
+                            <th class="p-4 border-b border-slate-600 text-right w-32">Date</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body" class="text-slate-300 font-mono text-sm divide-y divide-slate-700/50">
+                        <tr><td colspan="4" class="text-center p-12 text-slate-500 animate-pulse">Select a category...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -449,6 +528,7 @@
     <div id="screen-end" class="hidden absolute z-50 inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-8">
         <h1 id="end-title" class="text-7xl font-moba mb-4">GAME OVER</h1>
         <p id="end-desc" class="text-2xl text-slate-300 mb-8 max-w-2xl">...</p>
+        <p id="save-status" class="text-sm text-yellow-400 mt-4 animate-pulse"></p>
         <button onclick="location.reload()" class="px-10 py-4 bg-blue-600 rounded font-bold text-xl hover:bg-blue-500 mt-4">MAIN LAGI</button>
     </div>
 
@@ -564,6 +644,109 @@
             } finally {
                 clearTimeout(timeoutId);
             }
+        }
+
+        // --- SAVE SCORE ---
+        function saveScoreToCloud(winnerName) {
+            if (!GOOGLE_SCRIPT_URL) return;
+
+            const statusEl = document.getElementById('save-status');
+            statusEl.innerText = "Menyimpan Data Skor...";
+
+            const payload = {
+                mode: state.mode,
+                p1Name: state.p1.name,
+                p1Score: state.p1.score,
+                p2Name: state.p2.name,
+                p2Score: state.p2.score,
+                winner: winnerName
+            };
+
+            fetch(GOOGLE_SCRIPT_URL, {
+                method: "POST",
+                mode: "no-cors", 
+                headers: { "Content-Type": "text/plain" }, 
+                body: JSON.stringify(payload)
+            }).then(() => {
+                statusEl.innerText = "Data Berhasil Disimpan!";
+                statusEl.classList.replace('text-yellow-400', 'text-green-400');
+            }).catch(err => {
+                console.error(err);
+                statusEl.innerText = "Gagal Menyimpan Data";
+                statusEl.classList.replace('text-yellow-400', 'text-red-400');
+            });
+        }
+
+        // --- FETCH LEADERBOARD ---
+        function showLeaderboard() {
+            document.getElementById('screen-mode').classList.add('hidden');
+            document.getElementById('screen-leaderboard').classList.remove('hidden');
+            // Default load single rank
+            fetchRankData('single');
+        }
+
+        async function fetchRankData(mode) {
+            const tbody = document.getElementById('leaderboard-body');
+            const tabSingle = document.getElementById('tab-single');
+            const tabMulti = document.getElementById('tab-multi');
+            const subtitle = document.getElementById('leaderboard-subtitle');
+
+            // Update Tabs UI
+            if (mode === 'single') {
+                tabSingle.classList.add('active-single');
+                tabMulti.classList.remove('active-multi');
+                subtitle.innerText = "Top Solo Players (High Score)";
+            } else {
+                tabMulti.classList.add('active-multi');
+                tabSingle.classList.remove('active-single');
+                subtitle.innerText = "Top PvP Duelists (High Score)";
+            }
+
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center p-8">Fetching Data...</td></tr>';
+
+            try {
+                // Pass mode to Apps Script
+                const response = await fetch(GOOGLE_SCRIPT_URL + "?action=leaderboard&mode=" + mode);
+                const data = await response.json();
+                
+                tbody.innerHTML = '';
+                if(data.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-slate-500">Belum ada data untuk mode ini.</td></tr>';
+                    return;
+                }
+
+                data.forEach((player, index) => {
+                    let rankClass = "text-slate-300";
+                    if(index === 0) rankClass = "rank-1 font-bold text-xl text-yellow-400 drop-shadow-md";
+                    else if(index === 1) rankClass = "rank-2 font-bold text-lg text-gray-300";
+                    else if(index === 2) rankClass = "rank-3 font-bold text-orange-400";
+
+                    let dateStr = player.date;
+                    try {
+                        const dateObj = new Date(player.date);
+                        dateStr = dateObj.toLocaleDateString('id-ID', { month: 'short', day: 'numeric' });
+                    } catch(e) {}
+
+                    const row = `
+                        <tr class="leaderboard-row">
+                            <td class="leaderboard-cell text-center ${rankClass}">#${index + 1}</td>
+                            <td class="leaderboard-cell font-bold text-white">${player.name}</td>
+                            <td class="leaderboard-cell text-right font-mono text-cyan-400">${player.score}</td>
+                            <td class="leaderboard-cell text-right text-xs text-slate-500">${dateStr}</td>
+                        </tr>
+                    `;
+                    tbody.innerHTML += row;
+                });
+
+            } catch(e) {
+                console.error(e);
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center p-8 text-red-400">Gagal mengambil data. Cek koneksi.</td></tr>';
+            }
+        }
+
+        function hideLeaderboard() {
+            document.getElementById('screen-leaderboard').classList.add('hidden');
+            document.getElementById('screen-mode').classList.remove('hidden');
         }
 
         // --- AUDIO ENGINE ---
@@ -877,7 +1060,7 @@
                 setTimeout(() => {
                     showFloatText("CRITICAL!", 'view-single', 'text-yellow-400');
                     state.p1.score += 100; state.p2.hp -= 34;
-                    updateHP(); checkDeathOrNext(false);
+                    updateHP(); checkDeathOrNext();
                 }, 400);
             } else {
                 sfx.wrong();
@@ -887,7 +1070,7 @@
                 setTimeout(() => {
                     showFloatText("MISS!", 'view-single', 'text-red-500');
                     state.p1.hp -= 20;
-                    updateHP(); checkDeathOrNext(false);
+                    updateHP(); checkDeathOrNext();
                 }, 400);
             }
             updateScores();
@@ -906,7 +1089,7 @@
                 setTimeout(() => {
                     state[opponentKey].hp -= 25; state[playerKey].score += 100;
                     showFloatText("HIT!", 'view-multi', isP1 ? 'text-cyan-400' : 'text-red-400');
-                    updateHP(); updateScores(); checkDeathOrNext(true);
+                    updateHP(); updateScores(); checkDeathOrNext();
                 }, 400);
             } else {
                 sfx.wrong();
@@ -914,7 +1097,7 @@
                 resetStreak(playerKey);
                 state[playerKey].hp -= 15;
                 showFloatText("BACKFIRE!", 'view-multi', 'text-yellow-500');
-                updateHP(); updateScores(); checkDeathOrNext(true);
+                updateHP(); updateScores(); checkDeathOrNext();
             }
         }
 
@@ -980,7 +1163,7 @@
                 const dmg = 50;
                 state[opponentKey].hp -= dmg;
                 showFloatText(isP1 ? "THUNDER STRIKE!" : "METEOR BLAST!", state.mode === 'single' ? 'view-single' : 'view-multi', isP1 ? 'text-yellow-300' : 'text-orange-400');
-                updateHP(); checkDeathOrNext(true); 
+                updateHP(); checkDeathOrNext(); 
             }, 1000);
         };
 
@@ -1058,6 +1241,10 @@
             document.getElementById('end-title').innerText = isWin ? "VICTORY!" : "GAME OVER";
             document.getElementById('end-title').className = `text-7xl font-moba mb-4 ${isWin ? 'text-cyan-400' : 'text-red-500'}`;
             document.getElementById('end-desc').innerText = isWin ? "Anda telah menguasai semua arena." : "Logika Anda error. Coba lagi!";
+            
+            // Save to Sheet (Single Player)
+            const winnerName = isWin ? state.p1.name : "Bug Lord";
+            saveScoreToCloud(winnerName);
         }
         function endGameMulti() {
             BGM.stop();
@@ -1069,6 +1256,9 @@
             document.getElementById('end-title').innerText = "WINNER!";
             document.getElementById('end-title').className = `text-7xl font-moba mb-4 ${p1Win ? 'text-cyan-400' : 'text-red-500'}`;
             document.getElementById('end-desc').innerText = `Selamat ${winner}!\nCoding Master Sejati.`;
+            
+            // Save to Sheet (Multi Player)
+            saveScoreToCloud(winner);
         }
     </script>
 </body>
