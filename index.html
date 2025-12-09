@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIMPO: Ultimate Duel (Cloud Connected)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Roboto:wght@300;400;700&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #020617;
+            color: white;
+            overflow: hidden;
+            touch-action: manipulation;
+            user-select: none;
+        }
+
+        .font-moba { font-family: 'Orbitron', sans-serif; }
+
+        /* --- Animations --- */
+        @keyframes float { 0% { transform: translateY(0px); } 50% { transform: translateY(-10px); } 100% { transform: translateY(0px); } }
+        
+        @keyframes shoot-p1 {
+            0% { left: 15%; opacity: 1; transform: scale(1) rotate(0deg); }
+            80% { opacity: 1; }
+            100% { left: 85%; opacity: 0; transform: scale(2) rotate(360deg); }
+        }
+
+        @keyframes shoot-p2 {
+            0% { right: 15%; opacity: 1; transform: scale(1) rotate(0deg); }
+            80% { opacity: 1; }
+            100% { right: 85%; opacity: 0; transform: scale(2) rotate(-360deg); }
+        }
+
+        @keyframes damagePopup {
+            0% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-80px) scale(1.2); }
+        }
+
+        @keyframes arenaFade {
+            0% { opacity: 0; transform: scale(0.5); }
+            20% { opacity: 1; transform: scale(1.2); }
+            80% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(1.5); }
+        }
+        
+        @keyframes ult-glow {
+            0% { box-shadow: 0 0 10px #facc15; transform: scale(1); }
+            50% { box-shadow: 0 0 30px #facc15; transform: scale(1.05); }
+            100% { box-shadow: 0 0 10px #facc15; transform: scale(1); }
+        }
+
+        @keyframes screen-shake {
+            0% { transform: translate(0, 0); } 10% { transform: translate(-10px, -10px); }
+            20% { transform: translate(10px, 10px); } 30% { transform: translate(-10px, 10px); }
+            40% { transform: translate(10px, -10px); } 50% { transform: translate(-10px, -10px); }
+            60% { transform: translate(10px, 10px); } 70% { transform: translate(-10px, 10px); }
+            80% { transform: translate(10px, -10px); } 90% { transform: translate(0, 0); }
+            100% { transform: translate(0, 0); }
+        }
+
+        @keyframes thunder-flash {
+            0% { background-color: rgba(255, 255, 255, 0); }
+            10% { background-color: rgba(34, 211, 238, 0.8); }
+            20% { background-color: rgba(255, 255, 255, 0); }
+            30% { background-color: rgba(34, 211, 238, 0.8); }
+            100% { background-color: rgba(255, 255, 255, 0); }
+        }
+
+        @keyframes meteor-flash {
+            0% { background-color: rgba(255, 255, 255, 0); }
+            10% { background-color: rgba(239, 68, 68, 0.8); }
+            50% { background-color: rgba(239, 68, 68, 0.4); }
+            100% { background-color: rgba(255, 255, 255, 0); }
+        }
+
+        @keyframes urgentPulse {
+            0% { stroke: #ef4444; opacity: 1; }
+            50% { stroke: #fee2e2; opacity: 0.5; }
+            100% { stroke: #ef4444; opacity: 1; }
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+
+        .hero-float { animation: float 3s ease-in-out infinite; }
+        
+        /* UI Components */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(56, 189, 248, 0.3);
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .mode-card {
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .mode-card:hover {
+            transform: translateY(-5px);
+            border-color: #22d3ee;
+            box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+        }
+
+        .skill-btn {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 2px solid #334155;
+            transition: all 0.1s;
+        }
+        .skill-btn:active { transform: scale(0.95); background: #334155; }
+        .skill-btn:disabled { filter: grayscale(1); opacity: 0.5; }
+
+        .ult-btn {
+            background: linear-gradient(135deg, #4b5563, #1f2937);
+            border: 2px solid #6b7280;
+            filter: grayscale(1);
+            opacity: 0.5;
+            cursor: not-allowed;
+            transition: all 0.3s;
+        }
+        .ult-btn.ready {
+            filter: grayscale(0);
+            opacity: 1;
+            cursor: pointer;
+            background: linear-gradient(135deg, #fbbf24, #b45309);
+            border-color: #fde047;
+            animation: ult-glow 1.5s infinite;
+        }
+        .ult-btn.ready:active { transform: scale(0.95); }
+
+        .health-bar-container { background: #334155; border: 2px solid #000; }
+        .health-fill { transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+
+        .projectile {
+            position: absolute;
+            top: 35%; 
+            font-size: 4rem;
+            z-index: 50;
+            display: none;
+            pointer-events: none;
+        }
+
+        .hud-hexagon {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+            background: linear-gradient(180deg, #334155, #0f172a);
+            border: 2px solid #eab308;
+            z-index: 20;
+        }
+        
+        .timer-svg {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) rotate(-90deg);
+            width: 110px; height: 110px;
+            z-index: 10; pointer-events: none;
+        }
+        
+        .timer-circle {
+            fill: none; stroke-width: 6; stroke-linecap: round;
+            stroke-dasharray: 283; stroke-dashoffset: 0;
+            transition: stroke-dashoffset 1s linear, stroke 0.3s;
+        }
+
+        .score-box {
+            background: rgba(0,0,0,0.6);
+            transform: skewX(-20deg);
+            border-bottom: 2px solid;
+        }
+        .score-content { transform: skewX(20deg); }
+
+        .briefing-card {
+            background: linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,58,138,0.9) 100%);
+            border: 2px solid #22d3ee;
+            box-shadow: 0 0 50px rgba(34,211,238,0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        .briefing-scanline {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(to bottom, transparent 50%, rgba(34,211,238,0.1) 51%, transparent 51%);
+            background-size: 100% 4px;
+            pointer-events: none;
+        }
+
+        /* Character Select Styles */
+        .char-btn {
+            border: 2px solid #334155;
+            background: #1e293b;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+        .char-btn:hover { border-color: #94a3b8; }
+        .char-btn.selected-p1 {
+            border-color: #22d3ee;
+            background: rgba(34, 211, 238, 0.2);
+            box-shadow: 0 0 15px rgba(34, 211, 238, 0.5);
+        }
+        .char-btn.selected-p2 {
+            border-color: #ef4444;
+            background: rgba(239, 68, 68, 0.2);
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+        }
+        
+        .control-btn {
+            @apply w-10 h-10 bg-slate-800 border border-slate-600 rounded-full flex items-center justify-center hover:bg-slate-700 transition shadow-lg;
+        }
+    </style>
+</head>
+<body class="h-screen w-full bg-black overflow-hidden relative" onload="initGameData()">
+
+    <div id="ult-overlay" class="absolute inset-0 z-[60] pointer-events-none hidden"></div>
+
+    <!-- AUDIO CONTROLS -->
+    <div class="absolute top-4 right-4 z-[70] flex gap-2">
+        <button onclick="toggleMusic()" id="bgm-btn" class="control-btn" title="Toggle Music">
+            <i class="fas fa-music text-slate-400"></i> 
+        </button>
+        <button onclick="toggleMute()" id="mute-btn" class="control-btn" title="Toggle SFX">
+            <i class="fas fa-volume-up text-cyan-400"></i>
+        </button>
+    </div>
+
+    <!-- 1. LOADING SCREEN -->
+    <div id="screen-loading" class="absolute z-[80] inset-0 bg-slate-900 flex flex-col items-center justify-center">
+        <div class="w-16 h-16 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 class="text-2xl font-moba text-white animate-pulse">CONNECTING TO SYSTEM...</h2>
+        <p id="loading-status" class="text-slate-400 mt-2 text-sm font-mono">Initializing Game Data (15s Timeout)</p>
+    </div>
+
+    <!-- 2. MODE SELECTION -->
+    <div id="screen-mode" class="hidden absolute z-50 inset-0 bg-[url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071')] bg-cover bg-center flex flex-col items-center justify-center">
+        <div class="absolute inset-0 bg-slate-950/90"></div>
+        
+        <!-- Connection Status Indicator -->
+        <div class="absolute top-4 left-4 z-[70] flex items-center gap-2 bg-black/60 px-3 py-1 rounded border border-slate-700" id="connection-indicator">
+            <div class="w-3 h-3 rounded-full bg-yellow-500 animate-pulse" id="conn-dot"></div>
+            <span class="text-xs font-mono text-slate-300" id="conn-text">CHECKING...</span>
+        </div>
+
+        <div class="relative z-10 text-center w-full max-w-5xl px-4">
+            <h1 class="text-6xl md:text-8xl font-moba text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-2 drop-shadow-[0_0_15px_rgba(6,182,212,0.8)]">SIMPO</h1>
+            <p class="text-xl text-slate-300 mb-12 tracking-[0.3em] uppercase">Ultimate Edition</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div onclick="selectMode('single')" class="mode-card glass-panel p-8 rounded-2xl border border-slate-700 group">
+                    <div class="w-24 h-24 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-slate-600 group-hover:border-cyan-400">
+                        <i class="fas fa-user-astronaut text-4xl text-cyan-400"></i>
+                    </div>
+                    <h2 class="text-3xl font-moba text-white mb-2">SOLO ADVENTURE</h2>
+                    <p class="text-slate-400 text-sm">Lawan Bug Abyssal sendirian.</p>
+                </div>
+                <div onclick="selectMode('multi')" class="mode-card glass-panel p-8 rounded-2xl border border-slate-700 group">
+                    <div class="w-24 h-24 bg-slate-800 rounded-full mx-auto mb-4 flex items-center justify-center border-2 border-slate-600 group-hover:border-red-500">
+                        <div class="flex gap-2"><i class="fas fa-user text-3xl text-cyan-400"></i><i class="fas fa-user text-3xl text-red-500"></i></div>
+                    </div>
+                    <h2 class="text-3xl font-moba text-white mb-2">PVP DUEL (1 vs 1)</h2>
+                    <p class="text-slate-400 text-sm">Duel di satu layar IFP.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. CHARACTER & NAME INPUT -->
+    <div id="screen-input" class="hidden absolute z-50 inset-0 bg-slate-900 flex flex-col items-center justify-center overflow-y-auto">
+        <h2 class="text-4xl font-moba text-white mb-8 mt-10">SELECT HEROES</h2>
+        
+        <div class="flex flex-col md:flex-row gap-12 w-full max-w-6xl justify-center px-4 mb-8">
+            <!-- P1 Config -->
+            <div class="w-full max-w-md bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+                <label class="block text-cyan-400 font-bold mb-4 text-center text-xl tracking-widest">PLAYER 1</label>
+                <input type="text" id="input-p1" class="w-full bg-slate-900 border-2 border-cyan-500 rounded-lg p-3 text-center text-xl text-white mb-6 focus:outline-none focus:shadow-[0_0_20px_cyan]" placeholder="Enter Name" value="Hero">
+                <div class="grid grid-cols-4 gap-2 mb-2">
+                    <div onclick="selectAvatar('p1', 0)" id="p1-char-0" class="char-btn selected-p1 rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">🧙‍♂️</div>
+                    <div onclick="selectAvatar('p1', 1)" id="p1-char-1" class="char-btn rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">🤖</div>
+                    <div onclick="selectAvatar('p1', 2)" id="p1-char-2" class="char-btn rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">🥷</div>
+                    <div onclick="selectAvatar('p1', 3)" id="p1-char-3" class="char-btn rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">👽</div>
+                </div>
+                <p class="text-center text-xs text-slate-400">Select Avatar</p>
+            </div>
+            <!-- P2 Config -->
+            <div id="p2-input-group" class="hidden w-full max-w-md bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+                <label class="block text-red-500 font-bold mb-4 text-center text-xl tracking-widest">PLAYER 2</label>
+                <input type="text" id="input-p2" class="w-full bg-slate-900 border-2 border-red-500 rounded-lg p-3 text-center text-xl text-white mb-6 focus:outline-none focus:shadow-[0_0_20px_red]" placeholder="Enter Name" value="Rival">
+                <div class="grid grid-cols-4 gap-2 mb-2">
+                    <div onclick="selectAvatar('p2', 0)" id="p2-char-0" class="char-btn selected-p2 rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">🧙‍♂️</div>
+                    <div onclick="selectAvatar('p2', 1)" id="p2-char-1" class="char-btn rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">🤖</div>
+                    <div onclick="selectAvatar('p2', 2)" id="p2-char-2" class="char-btn rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">🥷</div>
+                    <div onclick="selectAvatar('p2', 3)" id="p2-char-3" class="char-btn rounded-lg p-2 text-center text-4xl h-20 flex items-center justify-center">👽</div>
+                </div>
+                <p class="text-center text-xs text-slate-400">Select Avatar</p>
+            </div>
+        </div>
+        <button onclick="startGame()" class="px-12 py-4 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg font-bold text-xl hover:scale-105 transition shadow-lg mb-8">START BATTLE</button>
+        <button onclick="location.reload()" class="text-slate-500 hover:text-white pb-8">Back</button>
+    </div>
+
+    <!-- 4. PRE-GAME BRIEFING -->
+    <div id="screen-briefing" class="hidden absolute z-50 inset-0 bg-slate-950 flex flex-col items-center justify-center p-6">
+        <div class="briefing-card w-full max-w-4xl p-8 rounded-2xl relative text-center">
+            <div class="briefing-scanline"></div>
+            <h3 class="text-cyan-400 text-sm uppercase tracking-[0.5em] mb-2 font-bold">Arena Data Downloaded</h3>
+            <h2 id="briefing-title" class="text-5xl md:text-6xl font-moba text-white mb-8">ARENA NAME</h2>
+            <div class="bg-black/50 border border-slate-600 p-6 rounded-xl mb-8">
+                <p id="briefing-desc" class="text-xl md:text-2xl text-cyan-100 leading-relaxed font-mono">...</p>
+            </div>
+            <div class="flex flex-col items-center gap-4">
+                <div class="w-full h-1 bg-slate-800 rounded overflow-hidden max-w-md">
+                    <div id="briefing-timer-bar" class="h-full bg-yellow-400 w-full"></div>
+                </div>
+                <button onclick="endBriefing()" class="px-8 py-3 bg-blue-600 hover:bg-blue-500 rounded font-bold tracking-wider transition">START MISSION NOW</button>
+                <p class="text-xs text-slate-500">Auto-start in <span id="briefing-countdown">8</span>s</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. GAME INTERFACE -->
+    <div id="game-interface" class="hidden w-full h-full flex-col relative bg-slate-950">
+        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(30,58,138,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.1)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+
+        <!-- HEADER -->
+        <div class="relative z-20 w-full h-24 flex items-start justify-center pt-2 gap-4 pointer-events-none">
+            <div class="score-box w-64 h-16 border-cyan-500 flex items-center justify-end px-6 pr-12 shadow-[0_0_15px_rgba(6,182,212,0.3)] bg-gradient-to-r from-transparent to-slate-900">
+                <div class="score-content text-right">
+                    <div class="text-[10px] text-cyan-300 uppercase tracking-widest">Player 1</div>
+                    <div class="text-3xl font-moba text-cyan-400 font-bold drop-shadow-[0_0_5px_cyan]" id="score-p1">0</div>
+                </div>
+            </div>
+            <div class="relative z-30 -mt-2 flex flex-col items-center justify-center">
+                <svg class="timer-svg" viewBox="0 0 100 100"><circle class="timer-circle" cx="50" cy="50" r="45" stroke="#22c55e" /></svg>
+                <div class="hud-hexagon w-20 h-20 flex flex-col items-center justify-center bg-slate-800 text-yellow-400 shadow-lg relative">
+                    <div class="text-[10px] font-bold opacity-70">TIME</div>
+                    <div class="text-3xl font-moba font-bold" id="timer-text">20</div>
+                </div>
+                <div class="bg-black/80 border border-yellow-600 px-4 py-1 rounded-full -mt-4 relative z-40">
+                    <span id="arena-name" class="text-xs text-yellow-400 font-bold uppercase tracking-wider whitespace-nowrap">Arena 1</span>
+                </div>
+            </div>
+            <div class="score-box w-64 h-16 border-red-500 flex items-center justify-start px-6 pl-12 shadow-[0_0_15px_rgba(239,68,68,0.3)] bg-gradient-to-l from-transparent to-slate-900" id="p2-score-container">
+                <div class="score-content text-left">
+                    <div class="text-[10px] text-red-300 uppercase tracking-widest">Player 2</div>
+                    <div class="text-3xl font-moba text-red-500 font-bold drop-shadow-[0_0_5px_red]" id="score-p2">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- BATTLEFIELD -->
+        <div class="relative flex-grow flex items-center justify-center overflow-hidden -mt-10" id="battlefield">
+            <div id="arena-banner" class="absolute inset-0 flex items-center justify-center z-50 pointer-events-none opacity-0">
+                <h1 id="arena-banner-text" class="text-6xl md:text-8xl font-moba text-yellow-400 drop-shadow-[0_0_30px_black] text-center bg-black/80 w-full py-10">ARENA START</h1>
+            </div>
+            
+            <div id="combat-text-container" class="absolute inset-0 pointer-events-none z-50"></div>
+            <div id="proj-p1" class="projectile text-cyan-400 drop-shadow-[0_0_20px_cyan]"><i class="fas fa-code"></i></div>
+            <div id="proj-p2" class="projectile text-red-500 drop-shadow-[0_0_20px_red]"><i class="fas fa-bug"></i></div>
+            <div id="vs-logo" class="absolute text-slate-800 text-[20vw] font-black opacity-20 select-none">VS</div>
+
+            <!-- Single View -->
+            <div id="view-single" class="hidden w-full h-full flex items-center justify-between px-20 relative z-10">
+                <div class="relative text-center">
+                    <div class="w-48 h-4 bg-slate-800 rounded border border-slate-600 mb-2 overflow-hidden"><div id="sp-hp-hero" class="h-full bg-cyan-500 w-full health-fill"></div></div>
+                    <div class="text-9xl filter drop-shadow-[0_0_20px_cyan] hero-float" id="sp-avatar-hero">🧙‍♂️</div>
+                    <div class="flex justify-center gap-1 mt-2 mb-1">
+                        <div class="w-3 h-3 rounded-full bg-slate-700" id="sp-p1-s1"></div>
+                        <div class="w-3 h-3 rounded-full bg-slate-700" id="sp-p1-s2"></div>
+                        <div class="w-3 h-3 rounded-full bg-slate-700" id="sp-p1-s3"></div>
+                    </div>
+                    <div class="bg-black/60 px-2 rounded text-cyan-300 font-bold" id="sp-name-hero">Hero</div>
+                </div>
+                <div class="relative text-center">
+                    <div class="w-48 h-4 bg-slate-800 rounded border border-slate-600 mb-2 overflow-hidden"><div id="sp-hp-enemy" class="h-full bg-red-500 w-full health-fill"></div></div>
+                    <div class="text-9xl filter drop-shadow-[0_0_20px_red] enemy-idle scale-x-[-1]" id="sp-emoji-enemy">👾</div>
+                    <div class="bg-black/60 px-2 rounded text-red-400 font-bold mt-2" id="sp-name-enemy">Bug</div>
+                </div>
+            </div>
+
+            <!-- Multi View -->
+            <div id="view-multi" class="hidden w-full h-full grid grid-cols-2 relative z-10">
+                <div class="flex flex-col items-center justify-center border-r border-slate-800/50 bg-gradient-to-r from-cyan-900/10 to-transparent">
+                    <div class="w-64 h-6 bg-slate-800 rounded border border-slate-600 mb-4 overflow-hidden relative">
+                        <div id="mp-hp-p1" class="h-full bg-cyan-500 w-full health-fill"></div>
+                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold drop-shadow">HP</span>
+                    </div>
+                    <div class="text-[150px] filter drop-shadow-[0_0_30px_cyan] hero-float" id="mp-avatar-p1">🧙‍♂️</div>
+                    <div class="flex justify-center gap-1 mt-4 mb-1">
+                        <div class="w-4 h-4 rounded-full bg-slate-700 border border-slate-500" id="mp-p1-s1"></div>
+                        <div class="w-4 h-4 rounded-full bg-slate-700 border border-slate-500" id="mp-p1-s2"></div>
+                        <div class="w-4 h-4 rounded-full bg-slate-700 border border-slate-500" id="mp-p1-s3"></div>
+                    </div>
+                    <h3 class="text-2xl font-moba text-cyan-400" id="mp-name-p1">PLAYER 1</h3>
+                </div>
+                <div class="flex flex-col items-center justify-center bg-gradient-to-l from-red-900/10 to-transparent">
+                    <div class="w-64 h-6 bg-slate-800 rounded border border-slate-600 mb-4 overflow-hidden relative">
+                        <div id="mp-hp-p2" class="h-full bg-red-500 w-full health-fill"></div>
+                        <span class="absolute inset-0 flex items-center justify-center text-xs font-bold drop-shadow">HP</span>
+                    </div>
+                    <div class="text-[150px] filter drop-shadow-[0_0_30px_red] hero-float scale-x-[-1] hue-rotate-[140deg]" id="mp-avatar-p2">🧙‍♂️</div>
+                    <div class="flex justify-center gap-1 mt-4 mb-1">
+                        <div class="w-4 h-4 rounded-full bg-slate-700 border border-slate-500" id="mp-p2-s1"></div>
+                        <div class="w-4 h-4 rounded-full bg-slate-700 border border-slate-500" id="mp-p2-s2"></div>
+                        <div class="w-4 h-4 rounded-full bg-slate-700 border border-slate-500" id="mp-p2-s3"></div>
+                    </div>
+                    <h3 class="text-2xl font-moba text-red-500" id="mp-name-p2">PLAYER 2</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- CONTROLS -->
+        <div class="relative z-30 min-h-[300px] bg-slate-900 border-t-4 border-slate-700 shadow-[0_-10px_40px_rgba(0,0,0,0.5)] flex flex-col">
+            <div class="bg-slate-800 border-b border-slate-700 p-4 min-h-[80px] flex items-center justify-center">
+                <p id="question-text" class="text-center text-xl md:text-2xl font-medium text-white max-w-4xl leading-relaxed">Loading...</p>
+            </div>
+            <div class="flex-grow relative">
+                <!-- SINGLE CONTROLS -->
+                <div id="controls-single" class="hidden w-full h-full flex flex-col items-center justify-center gap-4 p-6">
+                    <button id="btn-ult-p1-single" onclick="castUltimate('p1')" class="ult-btn w-full max-w-2xl h-16 rounded-lg font-bold text-white text-xl tracking-[0.2em] shadow-lg mb-2">
+                        <i class="fas fa-bolt mr-2"></i> THUNDER STRIKE
+                    </button>
+                    <div id="options-single" class="flex gap-4 w-full max-w-4xl justify-center"></div>
+                </div>
+                <!-- MULTI CONTROLS -->
+                <div id="controls-multi" class="hidden w-full h-full grid grid-cols-2">
+                    <div class="p-4 flex flex-col items-center justify-center border-r border-slate-700 bg-slate-900">
+                        <button id="btn-ult-p1-multi" onclick="castUltimate('p1')" class="ult-btn w-full max-w-md h-12 rounded font-bold text-white text-lg tracking-widest shadow-lg mb-4">
+                            <i class="fas fa-bolt mr-2"></i> THUNDER STRIKE
+                        </button>
+                        <div class="text-cyan-500 font-bold mb-2 text-sm tracking-widest">PLAYER 1 CONTROLS</div>
+                        <div id="p1-buttons" class="grid grid-cols-3 gap-3 w-full max-w-md"></div>
+                    </div>
+                    <div class="p-4 flex flex-col items-center justify-center bg-slate-900">
+                        <button id="btn-ult-p2-multi" onclick="castUltimate('p2')" class="ult-btn w-full max-w-md h-12 rounded font-bold text-white text-lg tracking-widest shadow-lg mb-4">
+                            <i class="fas fa-meteor mr-2"></i> METEOR BLAST
+                        </button>
+                        <div class="text-red-500 font-bold mb-2 text-sm tracking-widest">PLAYER 2 CONTROLS</div>
+                        <div id="p2-buttons" class="grid grid-cols-3 gap-3 w-full max-w-md"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- GAME OVER -->
+    <div id="screen-end" class="hidden absolute z-50 inset-0 bg-slate-950/95 flex flex-col items-center justify-center text-center p-8">
+        <h1 id="end-title" class="text-7xl font-moba mb-4">GAME OVER</h1>
+        <p id="end-desc" class="text-2xl text-slate-300 mb-8 max-w-2xl">...</p>
+        <button onclick="location.reload()" class="px-10 py-4 bg-blue-600 rounded font-bold text-xl hover:bg-blue-500 mt-4">MAIN LAGI</button>
+    </div>
+
+    <script>
+        // --- CONFIG ---
+        const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyia_axLMWaHEBu6lO-R7nM63Je7N-LqHyPaIVjgmn3pDkxB9tZupd8mG_ARI6CzBdUKA/exec";
+
+        // FALLBACK DATA (Full Game Content)
+        const defaultArenas = [
+            { 
+                title: "Class & Object", 
+                briefing: "CLASS = CETAKAN (Blueprint). OBJECT = HASIL NYATA. Gunakan keyword 'new' untuk menciptakan object dari class.",
+                questions: [
+                    { q: "Apa blueprint untuk membuat objek?", opts: [{l:"Class", c:true}, {l:"Method", c:false}, {l:"Package", c:false}] },
+                    { q: "Keyword untuk instansiasi objek?", opts: [{l:"new", c:true}, {l:"make", c:false}, {l:"create", c:false}] },
+                    { q: "Object adalah instance dari...", opts: [{l:"Class", c:true}, {l:"Interface", c:false}, {l:"Variable", c:false}] }
+                ]
+            },
+            { 
+                title: "Encapsulation", 
+                briefing: "LINDUNGI DATA SENSITIF. Gunakan 'private' untuk menyembunyikan data, dan 'public' Getter/Setter untuk akses aman.",
+                questions: [
+                    { q: "Akses modifier paling ketat?", opts: [{l:"private", c:true}, {l:"public", c:false}, {l:"protected", c:false}] },
+                    { q: "Method untuk mengambil data private?", opts: [{l:"Getter", c:true}, {l:"Setter", c:false}, {l:"Constructor", c:false}] },
+                    { q: "Tujuan utama enkapsulasi?", opts: [{l:"Keamanan Data", c:true}, {l:"Kecepatan", c:false}, {l:"Memori", c:false}] }
+                ]
+            },
+            { 
+                title: "Inheritance", 
+                briefing: "WARISI SIFAT PARENT. Gunakan 'extends' agar Class Anak (Subclass) mewarisi fitur Class Induk (Superclass).",
+                questions: [
+                    { q: "Keyword pewarisan di Java?", opts: [{l:"extends", c:true}, {l:"implements", c:false}, {l:"super", c:false}] },
+                    { q: "Class induk disebut juga...", opts: [{l:"Superclass", c:true}, {l:"Subclass", c:false}, {l:"Child", c:false}] },
+                    { q: "Bisakah mewarisi multiple class?", opts: [{l:"Tidak", c:true}, {l:"Bisa", c:false}, {l:"Tergantung", c:false}] }
+                ]
+            },
+            { 
+                title: "Polymorphism", 
+                briefing: "SATU AKSI, BEDA PERILAKU. Overriding mengubah isi method dari Parent agar sesuai dengan kebutuhan Child.",
+                questions: [
+                    { q: "Method sama, implementasi beda di subclass disebut?", opts: [{l:"Overriding", c:true}, {l:"Overloading", c:false}, {l:"Shadowing", c:false}] },
+                    { q: "Overloading terjadi jika...", opts: [{l:"Param Beda", c:true}, {l:"Param Sama", c:false}, {l:"Return Beda", c:false}] }
+                ]
+            }
+        ];
+
+        let arenas = []; // Will be populated from Google Sheet or Fallback
+
+        // --- FETCH DATA ---
+        async function initGameData() {
+            const statusEl = document.getElementById('loading-status');
+            const connIndicator = document.getElementById('connection-indicator');
+            const connDot = document.getElementById('conn-dot');
+            const connText = document.getElementById('conn-text');
+            
+            // AbortController for Timeout (Increased to 15s)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); 
+
+            try {
+                if(!GOOGLE_SCRIPT_URL) throw new Error("No URL");
+                
+                const response = await fetch(GOOGLE_SCRIPT_URL, { 
+                    signal: controller.signal,
+                    credentials: 'omit' // Prevent cookie issues
+                });
+                
+                // If it returns HTML (Login Page), it means permissions are wrong
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") === -1) {
+                    throw new Error("Permission Error (Check Apps Script)");
+                }
+
+                const data = await response.json();
+                
+                // Check specific error from script
+                if (data.error) {
+                    throw new Error("Server Error: " + data.error);
+                }
+
+                if (Array.isArray(data) && data.length > 0) {
+                    arenas = data;
+                    statusEl.innerText = "Data Loaded Successfully!";
+                    statusEl.classList.add('text-green-400');
+                    
+                    // Update UI Indicator
+                    connDot.classList.replace('bg-yellow-500', 'bg-green-500');
+                    connText.innerText = "ONLINE";
+                    connText.classList.replace('text-slate-300', 'text-green-300');
+
+                    setTimeout(() => {
+                        document.getElementById('screen-loading').classList.add('hidden');
+                        document.getElementById('screen-mode').classList.remove('hidden');
+                    }, 1000);
+                } else {
+                    throw new Error("Empty Data");
+                }
+            } catch (err) {
+                console.warn("Using Offline Data:", err); 
+                statusEl.innerText = "Offline Mode: " + err.message;
+                statusEl.classList.add('text-red-400');
+                
+                // Update UI Indicator
+                connDot.classList.replace('bg-yellow-500', 'bg-red-500');
+                connText.innerText = "OFFLINE MODE";
+                connText.classList.replace('text-slate-300', 'text-red-300');
+
+                arenas = defaultArenas; // Use Full Fallback
+                setTimeout(() => {
+                    document.getElementById('screen-loading').classList.add('hidden');
+                    document.getElementById('screen-mode').classList.remove('hidden');
+                }, 1500);
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let isMuted = false;
+        let isMusicPlaying = false; 
+
+        const BGM = {
+            oscillators: [],
+            gainNode: null,
+            isPlaying: false,
+            init: function() {
+                if(this.isPlaying) return;
+                this.isPlaying = true;
+                this.gainNode = audioCtx.createGain();
+                this.gainNode.gain.value = 0.1;
+                this.gainNode.connect(audioCtx.destination);
+                this.createDrone(55, 'sawtooth', 0.8);
+                this.createDrone(55.5, 'sawtooth', 0.6); 
+                this.createDrone(82.4, 'triangle', 0.4);
+            },
+            createDrone: function(freq, type, vol) {
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                const filter = audioCtx.createBiquadFilter();
+                osc.type = type; osc.frequency.value = freq;
+                filter.type = 'lowpass'; filter.frequency.value = 200; filter.Q.value = 1;
+                gain.gain.value = vol;
+                const lfo = audioCtx.createOscillator();
+                lfo.type = 'sine'; lfo.frequency.value = 0.1;
+                const lfoGain = audioCtx.createGain(); lfoGain.gain.value = 100;
+                lfo.connect(lfoGain); lfoGain.connect(filter.frequency); lfo.start();
+                osc.connect(filter); filter.connect(gain); gain.connect(this.gainNode);
+                osc.start(); this.oscillators.push({ osc, lfo, gain });
+            },
+            stop: function() {
+                if(!this.isPlaying) return;
+                this.oscillators.forEach(o => { o.osc.stop(); o.lfo.stop(); o.osc.disconnect(); });
+                this.oscillators = []; this.gainNode.disconnect(); this.isPlaying = false;
+            },
+            setVolume: function(val) {
+                if(this.gainNode) this.gainNode.gain.setTargetAtTime(val, audioCtx.currentTime, 0.5);
+            }
+        };
+
+        function toggleMusic() {
+            isMusicPlaying = !isMusicPlaying;
+            const btn = document.getElementById('bgm-btn');
+            if(isMusicPlaying) {
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+                BGM.init(); BGM.setVolume(0.1);
+                btn.innerHTML = '<i class="fas fa-music text-green-400"></i>';
+            } else {
+                BGM.stop();
+                btn.innerHTML = '<i class="fas fa-music text-slate-400"></i>';
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('mute-btn');
+            if(isMuted) {
+                btn.innerHTML = '<i class="fas fa-volume-mute text-red-500"></i>';
+            } else {
+                btn.innerHTML = '<i class="fas fa-volume-up text-cyan-400"></i>';
+                if(audioCtx.state === 'suspended') audioCtx.resume();
+            }
+        }
+
+        function playTone(freq, type, duration, vol=0.1) {
+            if(isMuted) return;
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type; osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + duration);
+        }
+
+        function playNoise(duration) {
+            if(isMuted) return;
+            const bufferSize = audioCtx.sampleRate * duration;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration);
+            noise.connect(gain); gain.connect(audioCtx.destination);
+            noise.start();
+        }
+
+        const sfx = {
+            select: () => playTone(800, 'sine', 0.1),
+            correct: () => { playTone(600, 'square', 0.1); setTimeout(()=>playTone(1200, 'square', 0.2), 100); },
+            wrong: () => { playTone(150, 'sawtooth', 0.3); setTimeout(()=>playTone(100, 'sawtooth', 0.3), 150); },
+            attack: () => { 
+                if(isMuted) return;
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.3);
+                gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+                osc.connect(gain); gain.connect(audioCtx.destination);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+            },
+            ult: () => { playNoise(1.0); playTone(50, 'sawtooth', 1.0, 0.2); },
+            win: () => { [440, 554, 659, 880].forEach((f, i) => setTimeout(() => playTone(f, 'square', 0.3), i*200)); }
+        };
+
+        // --- AVATAR DATA ---
+        const avatars = ["🧙‍♂️", "🤖", "🥷", "👽"];
+
+        let state = { 
+            mode: 'single', 
+            p1: { name: "Hero", hp: 100, score: 0, streak: 0, ultReady: false, avatar: avatars[0], avatarIdx: 0 }, 
+            p2: { name: "Rival", hp: 100, score: 0, streak: 0, ultReady: false, avatar: avatars[0], avatarIdx: 0 }, 
+            arenaIdx: 0, qIdx: 0, canAnswer: true 
+        };
+        
+        let timerInterval;
+        let briefingTimer;
+        const TIME_LIMIT = 20;
+        let timeLeft = TIME_LIMIT;
+
+        // --- CHARACTER SELECTION LOGIC ---
+        function selectAvatar(playerKey, idx) {
+            sfx.select();
+            state[playerKey].avatarIdx = idx;
+            state[playerKey].avatar = avatars[idx];
+            for(let i=0; i<4; i++) {
+                const btn = document.getElementById(`${playerKey}-char-${i}`);
+                if(btn) {
+                    if(i === idx) btn.classList.add(`selected-${playerKey}`);
+                    else btn.classList.remove(`selected-${playerKey}`);
+                }
+            }
+        }
+
+        // --- TIMER ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeLeft = TIME_LIMIT;
+            updateTimerVisuals();
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                updateTimerVisuals();
+                if (timeLeft <= 0) handleTimeOut();
+            }, 1000);
+        }
+        function stopTimer() { clearInterval(timerInterval); }
+        function updateTimerVisuals() {
+            document.getElementById('timer-text').innerText = timeLeft;
+            const circle = document.querySelector('.timer-circle');
+            const circumference = 283;
+            const offset = circumference - (timeLeft / TIME_LIMIT) * circumference;
+            circle.style.strokeDashoffset = offset;
+            if (timeLeft > 10) { circle.style.stroke = "#22c55e"; circle.style.animation = "none"; }
+            else if (timeLeft > 5) { circle.style.stroke = "#eab308"; circle.style.animation = "none"; }
+            else { circle.style.stroke = "#ef4444"; circle.style.animation = "urgentPulse 0.5s infinite"; }
+        }
+        function handleTimeOut() {
+            stopTimer();
+            state.canAnswer = false;
+            sfx.wrong();
+            if (state.mode === 'single') {
+                showFloatText("TIME OUT!", 'view-single', 'text-red-500');
+                state.p1.hp -= 15;
+            } else {
+                showFloatText("SUDDEN DEATH!", 'view-multi', 'text-yellow-500');
+                state.p1.hp -= 10; state.p2.hp -= 10;
+            }
+            resetStreak('p1'); resetStreak('p2');
+            updateHP(); checkDeathOrNext();
+        }
+
+        // --- SETUP ---
+        function selectMode(mode) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            sfx.select();
+            state.mode = mode;
+            document.getElementById('screen-mode').classList.add('hidden');
+            document.getElementById('screen-input').classList.remove('hidden');
+            document.getElementById('screen-input').classList.add('flex');
+            selectAvatar('p1', 0);
+            selectAvatar('p2', 0);
+            if(mode === 'multi') document.getElementById('p2-input-group').classList.remove('hidden');
+        }
+
+        function startGame() {
+            sfx.select();
+            state.p1.name = document.getElementById('input-p1').value || "Player 1";
+            state.p2.name = (state.mode === 'multi') ? (document.getElementById('input-p2').value || "Player 2") : "Bug Lord";
+            document.getElementById('screen-input').classList.add('hidden');
+            if(!isMusicPlaying) toggleMusic(); 
+            showBriefing();
+        }
+
+        function showBriefing() {
+            sfx.select();
+            const arena = arenas[state.arenaIdx];
+            document.getElementById('game-interface').classList.add('hidden');
+            document.getElementById('screen-briefing').classList.remove('hidden');
+            document.getElementById('screen-briefing').classList.add('flex');
+            
+            document.getElementById('briefing-title').innerText = arena.title;
+            document.getElementById('briefing-desc').innerText = arena.briefing;
+            
+            let bTime = 8;
+            document.getElementById('briefing-countdown').innerText = bTime;
+            document.getElementById('briefing-timer-bar').style.width = '100%';
+            
+            if(briefingTimer) clearInterval(briefingTimer);
+            briefingTimer = setInterval(() => {
+                bTime--;
+                document.getElementById('briefing-countdown').innerText = bTime;
+                document.getElementById('briefing-timer-bar').style.width = (bTime/8 * 100) + '%';
+                if(bTime <= 0) endBriefing();
+            }, 1000);
+        }
+
+        function endBriefing() {
+            clearInterval(briefingTimer);
+            document.getElementById('screen-briefing').classList.add('hidden');
+            document.getElementById('screen-briefing').classList.remove('flex');
+            document.getElementById('game-interface').classList.remove('hidden');
+            document.getElementById('game-interface').classList.add('flex');
+            
+            if (state.mode === 'single') {
+                document.getElementById('view-single').classList.remove('hidden');
+                document.getElementById('controls-single').classList.remove('hidden');
+                document.getElementById('controls-single').classList.add('flex');
+                document.getElementById('p2-score-container').classList.add('invisible');
+                document.getElementById('sp-name-hero').innerText = state.p1.name;
+                document.getElementById('sp-avatar-hero').innerText = state.p1.avatar;
+                document.getElementById('sp-name-enemy').innerText = state.p2.name;
+            } else {
+                document.getElementById('view-multi').classList.remove('hidden');
+                document.getElementById('controls-multi').classList.remove('hidden');
+                document.getElementById('p2-score-container').classList.remove('invisible');
+                document.getElementById('mp-name-p1').innerText = state.p1.name;
+                document.getElementById('mp-avatar-p1').innerText = state.p1.avatar;
+                document.getElementById('mp-name-p2').innerText = state.p2.name;
+                document.getElementById('mp-avatar-p2').innerText = state.p2.avatar;
+            }
+            showArenaBanner();
+            loadLevel();
+        }
+
+        function showArenaBanner() {
+            const banner = document.getElementById('arena-banner');
+            document.getElementById('arena-banner-text').innerText = arenas[state.arenaIdx].title;
+            banner.style.animation = 'none';
+            banner.offsetHeight; 
+            banner.style.animation = 'arenaFade 3s forwards';
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function loadLevel() {
+            if (state.arenaIdx >= arenas.length) { endGame(true); return; }
+            const q = arenas[state.arenaIdx].questions[state.qIdx];
+            document.getElementById('arena-name').innerText = arenas[state.arenaIdx].title;
+            document.getElementById('question-text').innerText = q.q;
+            state.canAnswer = true;
+            renderControls(shuffleArray([...q.opts]));
+            updateUltButtons(); 
+            startTimer(); 
+        }
+
+        function renderControls(options) {
+            const createBtn = (opt, playerPrefix, colorClass) => `
+                <button onclick="handleAnswer('${playerPrefix}', ${opt.c}, this)" 
+                    class="skill-btn w-full h-24 rounded-lg flex flex-col items-center justify-center group relative hover:bg-slate-800 active:scale-95 transition-all">
+                    <span class="text-xl md:text-2xl font-bold ${colorClass} mb-1 group-hover:text-white">${opt.l}</span>
+                </button>`;
+
+            if (state.mode === 'single') {
+                document.getElementById('options-single').innerHTML = options.map(o => createBtn(o, 'p1', 'text-cyan-400')).join('');
+            } else {
+                document.getElementById('p1-buttons').innerHTML = options.map(o => createBtn(o, 'p1', 'text-cyan-400')).join('');
+                document.getElementById('p2-buttons').innerHTML = options.map(o => createBtn(o, 'p2', 'text-red-500')).join('');
+            }
+        }
+
+        // --- GAME LOGIC ---
+        function handleAnswer(playerKey, isCorrect, btn) {
+            if (!state.canAnswer) return;
+            stopTimer();
+            if (state.mode === 'single') handleSingle(isCorrect, btn);
+            else handleMulti(playerKey, isCorrect, btn);
+        }
+
+        function handleSingle(isCorrect, btn) {
+            state.canAnswer = false;
+            if (isCorrect) {
+                sfx.correct();
+                playAttackAnim(true);
+                incrementStreak('p1');
+                btn.classList.add('bg-green-900', 'border-green-500');
+                setTimeout(() => {
+                    showFloatText("CRITICAL!", 'view-single', 'text-yellow-400');
+                    state.p1.score += 100; state.p2.hp -= 34;
+                    updateHP(); checkDeathOrNext(false);
+                }, 400);
+            } else {
+                sfx.wrong();
+                playAttackAnim(false);
+                resetStreak('p1');
+                btn.classList.add('bg-red-900', 'border-red-500');
+                setTimeout(() => {
+                    showFloatText("MISS!", 'view-single', 'text-red-500');
+                    state.p1.hp -= 20;
+                    updateHP(); checkDeathOrNext(false);
+                }, 400);
+            }
+            updateScores();
+        }
+
+        function handleMulti(playerKey, isCorrect, btn) {
+            state.canAnswer = false;
+            const isP1 = playerKey === 'p1';
+            const opponentKey = isP1 ? 'p2' : 'p1';
+            
+            if (isCorrect) {
+                sfx.correct();
+                playAttackAnim(isP1);
+                incrementStreak(playerKey);
+                btn.style.backgroundColor = isP1 ? 'rgba(6,182,212,0.3)' : 'rgba(239,68,68,0.3)';
+                setTimeout(() => {
+                    state[opponentKey].hp -= 25; state[playerKey].score += 100;
+                    showFloatText("HIT!", 'view-multi', isP1 ? 'text-cyan-400' : 'text-red-400');
+                    updateHP(); updateScores(); checkDeathOrNext(true);
+                }, 400);
+            } else {
+                sfx.wrong();
+                btn.style.backgroundColor = '#450a0a';
+                resetStreak(playerKey);
+                state[playerKey].hp -= 15;
+                showFloatText("BACKFIRE!", 'view-multi', 'text-yellow-500');
+                updateHP(); updateScores(); checkDeathOrNext(true);
+            }
+        }
+
+        // --- STREAK & ULT ---
+        function incrementStreak(playerKey) {
+            const player = state[playerKey];
+            if (player.ultReady) return; 
+            player.streak++;
+            updateStreakVisuals(playerKey);
+            if (player.streak >= 3) {
+                player.ultReady = true;
+                sfx.select(); 
+                showFloatText("ULTIMATE READY!", state.mode === 'single' ? 'view-single' : 'view-multi', playerKey === 'p1' ? 'text-cyan-300' : 'text-red-300');
+                updateUltButtons();
+            }
+        }
+        function resetStreak(playerKey) {
+            state[playerKey].streak = 0;
+            updateStreakVisuals(playerKey);
+        }
+        function updateStreakVisuals(playerKey) {
+            const s = state[playerKey].streak;
+            const prefix = state.mode === 'single' ? 'sp' : 'mp';
+            if (state.mode === 'single' && playerKey === 'p2') return;
+            for(let i=1; i<=3; i++) {
+                const dot = document.getElementById(`${prefix}-${playerKey}-s${i}`);
+                if(dot) {
+                    if(i <= s) dot.classList.replace('bg-slate-700', playerKey === 'p1' ? 'bg-cyan-400' : 'bg-red-500');
+                    else dot.classList.replace(playerKey === 'p1' ? 'bg-cyan-400' : 'bg-red-500', 'bg-slate-700');
+                    if(i <= s) dot.classList.add('shadow-[0_0_10px_currentColor]');
+                    else dot.classList.remove('shadow-[0_0_10px_currentColor]');
+                }
+            }
+        }
+        function updateUltButtons() {
+            const btnP1S = document.getElementById('btn-ult-p1-single');
+            const btnP1M = document.getElementById('btn-ult-p1-multi');
+            const btnP2M = document.getElementById('btn-ult-p2-multi');
+            const toggle = (btn, ready) => {
+                if(!btn) return;
+                btn.disabled = !ready;
+                if(ready) btn.classList.add('ready'); else btn.classList.remove('ready');
+            };
+            if (state.mode === 'single') toggle(btnP1S, state.p1.ultReady);
+            else { toggle(btnP1M, state.p1.ultReady); toggle(btnP2M, state.p2.ultReady); }
+        }
+        window.castUltimate = function(playerKey) {
+            const player = state[playerKey];
+            if (!player.ultReady) return;
+            sfx.ult();
+            stopTimer(); state.canAnswer = false; 
+            player.streak = 0; player.ultReady = false;
+            updateStreakVisuals(playerKey); updateUltButtons();
+            const overlay = document.getElementById('ult-overlay');
+            const battlefield = document.getElementById('battlefield');
+            const opponentKey = playerKey === 'p1' ? 'p2' : 'p1';
+            const isP1 = playerKey === 'p1';
+            overlay.classList.remove('hidden');
+            overlay.style.animation = isP1 ? 'thunder-flash 1s' : 'meteor-flash 1s';
+            battlefield.style.animation = 'screen-shake 0.5s';
+            setTimeout(() => {
+                overlay.style.animation = ''; overlay.classList.add('hidden'); battlefield.style.animation = '';
+                const dmg = 50;
+                state[opponentKey].hp -= dmg;
+                showFloatText(isP1 ? "THUNDER STRIKE!" : "METEOR BLAST!", state.mode === 'single' ? 'view-single' : 'view-multi', isP1 ? 'text-yellow-300' : 'text-orange-400');
+                updateHP(); checkDeathOrNext(true); 
+            }, 1000);
+        };
+
+        // --- HELPERS ---
+        function playAttackAnim(isP1) {
+            sfx.attack();
+            const el = document.getElementById(isP1 ? 'proj-p1' : 'proj-p2');
+            el.style.display = 'block';
+            el.style.animation = `${isP1 ? 'shoot-p1' : 'shoot-p2'} 0.5s forwards linear`;
+            setTimeout(() => el.style.display = 'none', 500);
+        }
+        function checkDeathOrNext() {
+            if (state.mode === 'single') {
+                if (state.p1.hp <= 0) {
+                    setTimeout(() => endGame(false), 1000);
+                    return;
+                }
+                if (state.p2.hp <= 0) {
+                    state.p2.hp = 0;
+                    setTimeout(() => {
+                        state.arenaIdx++;
+                        state.qIdx = 0;
+                        state.p2.hp = 100;
+                        if (state.arenaIdx >= arenas.length) {
+                            endGame(true);
+                        } else {
+                            showBriefing();
+                        }
+                    }, 1000);
+                    return;
+                }
+            } else {
+                if (state.p1.hp <= 0 || state.p2.hp <= 0) {
+                    setTimeout(() => endGameMulti(), 1000);
+                    return;
+                }
+            }
+            setTimeout(() => nextQuestion(), 1000);
+        }
+        function updateHP() {
+            if (state.mode === 'single') {
+                 document.getElementById('sp-hp-hero').style.width = Math.max(0, state.p1.hp) + "%";
+                 document.getElementById('sp-hp-enemy').style.width = Math.max(0, state.p2.hp) + "%";
+            } else {
+                 document.getElementById('mp-hp-p1').style.width = Math.max(0, state.p1.hp) + "%";
+                 document.getElementById('mp-hp-p2').style.width = Math.max(0, state.p2.hp) + "%";
+            }
+        }
+        function updateScores() {
+            document.getElementById('score-p1').innerText = state.p1.score;
+            document.getElementById('score-p2').innerText = state.p2.score;
+        }
+        function nextQuestion() {
+            state.qIdx++;
+            if (state.qIdx >= arenas[state.arenaIdx].questions.length) {
+                state.arenaIdx++; state.qIdx = 0;
+                if (state.mode === 'single') state.p2.hp = 100; 
+                if (state.arenaIdx < arenas.length) showBriefing();
+                else loadLevel();
+            } else loadLevel();
+        }
+        function showFloatText(txt, containerId, colorClass) {
+            const el = document.createElement('div');
+            el.innerText = txt;
+            el.className = `absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl md:text-7xl font-moba font-bold ${colorClass} drop-shadow-[0_0_10px_black] z-50 whitespace-nowrap`;
+            el.style.animation = "damagePopup 1.5s forwards";
+            document.getElementById('combat-text-container').appendChild(el);
+            setTimeout(() => el.remove(), 1500);
+        }
+        function endGame(isWin) {
+            BGM.stop();
+            sfx.win();
+            document.getElementById('game-interface').classList.add('hidden');
+            document.getElementById('screen-end').classList.remove('hidden');
+            document.getElementById('end-title').innerText = isWin ? "VICTORY!" : "GAME OVER";
+            document.getElementById('end-title').className = `text-7xl font-moba mb-4 ${isWin ? 'text-cyan-400' : 'text-red-500'}`;
+            document.getElementById('end-desc').innerText = isWin ? "Anda telah menguasai semua arena." : "Logika Anda error. Coba lagi!";
+        }
+        function endGameMulti() {
+            BGM.stop();
+            sfx.win();
+            document.getElementById('game-interface').classList.add('hidden');
+            document.getElementById('screen-end').classList.remove('hidden');
+            const p1Win = state.p1.hp > 0;
+            const winner = p1Win ? state.p1.name : state.p2.name;
+            document.getElementById('end-title').innerText = "WINNER!";
+            document.getElementById('end-title').className = `text-7xl font-moba mb-4 ${p1Win ? 'text-cyan-400' : 'text-red-500'}`;
+            document.getElementById('end-desc').innerText = `Selamat ${winner}!\nCoding Master Sejati.`;
+        }
+    </script>
+</body>
+</html>
