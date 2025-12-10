@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIMPO: Ultimate Duel (Cloud Connected)</title>
+    <title>SIMPO: Simulasi Pemrograman Berorientasi Objek</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -250,8 +250,6 @@
             position: absolute;
             inset: 0;
             pointer-events: none;
-            /* Remove display: none to allow JS to control 'hidden' class */
-            /* Z-index 15 puts it above sprites (z-10) but below HUD (z-20) */
             z-index: 15; 
             animation: danger-pulse 1s infinite;
             background: radial-gradient(circle, transparent 60%, rgba(255, 0, 0, 0.4) 100%);
@@ -315,14 +313,72 @@
                 </div>
             </div>
 
-            <!-- Leaderboard Button -->
-            <button onclick="showLeaderboard()" class="px-8 py-3 bg-slate-800 border border-yellow-600 text-yellow-400 rounded-full font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2 mx-auto shadow-[0_0_15px_rgba(234,179,8,0.3)]">
-                <i class="fas fa-trophy"></i> HALL OF FAME
-            </button>
+            <!-- Footer Buttons -->
+            <div class="flex gap-4 justify-center">
+                <!-- Credits Button -->
+                <button onclick="showCredits()" class="px-6 py-2 bg-slate-800/80 border border-slate-600 text-slate-300 rounded-full font-bold hover:bg-slate-700 hover:text-white transition flex items-center justify-center gap-2 shadow-lg">
+                    <i class="fas fa-info-circle"></i> Credits
+                </button>
+                
+                <!-- Leaderboard Button -->
+                <button onclick="showLeaderboard()" class="px-8 py-3 bg-slate-800 border border-yellow-600 text-yellow-400 rounded-full font-bold hover:bg-slate-700 transition flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.3)]">
+                    <i class="fas fa-trophy"></i> HALL OF FAME
+                </button>
+            </div>
+            
+            <!-- Credits Footer Text -->
+             <div class="mt-8 text-xs text-slate-500 font-mono">
+                &copy; 2025 Logic Craft - SMKN 2 Bangkalan
+            </div>
         </div>
     </div>
 
-    <!-- LEADERBOARD SCREEN (Updated) -->
+    <!-- CREDITS SCREEN (New) -->
+    <div id="screen-credits" class="hidden absolute z-[80] inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 backdrop-blur-sm">
+        <div class="w-full max-w-2xl glass-panel p-8 rounded-2xl border border-cyan-500/50 shadow-2xl relative text-center">
+            <button onclick="hideCredits()" class="absolute top-4 right-4 text-slate-400 hover:text-white text-2xl transition"><i class="fas fa-times"></i></button>
+            
+            <h2 class="text-4xl font-moba text-cyan-400 mb-2 tracking-widest">CREDITS</h2>
+            <div class="w-32 h-1 bg-gradient-to-r from-transparent via-cyan-500 to-transparent mx-auto mb-8"></div>
+            
+            <div class="mb-8">
+                <h3 class="text-xl font-bold text-white mb-1">TEAM LOGIC CRAFT</h3>
+                <p class="text-slate-400 text-sm uppercase tracking-widest">SMKN 2 Bangkalan</p>
+            </div>
+            
+            <div class="space-y-6 text-left max-w-lg mx-auto">
+                <div class="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-cyan-500/50 transition">
+                    <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-2xl">👨‍🏫</div>
+                    <div>
+                        <h4 class="font-bold text-cyan-100">Davis Nur Iqbal Rifandi, S.Pd.</h4>
+                        <p class="text-xs text-slate-400 font-mono">davisrifandi30@guru.smk.belajar.id</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-cyan-500/50 transition">
+                    <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-2xl">👨‍💻</div>
+                    <div>
+                        <h4 class="font-bold text-cyan-100">Dimas Setyoadjie, S.Pd.</h4>
+                        <p class="text-xs text-slate-400 font-mono">dimassetyoadjie07@guru.smk.belajar.id</p>
+                    </div>
+                </div>
+
+                <div class="flex items-start gap-4 p-4 bg-slate-800/50 rounded-lg border border-slate-700 hover:border-cyan-500/50 transition">
+                    <div class="w-12 h-12 bg-slate-700 rounded-full flex items-center justify-center text-2xl">👩‍🏫</div>
+                    <div>
+                        <h4 class="font-bold text-cyan-100">Naharotul Istiqomah, S.Pd.</h4>
+                        <p class="text-xs text-slate-400 font-mono">naharotulistiqomah091@guru.smk.belajar.id</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-xs text-slate-600">
+                Developed for Educational Purpose &copy; 2025
+            </div>
+        </div>
+    </div>
+
+    <!-- LEADERBOARD SCREEN -->
     <div id="screen-leaderboard" class="hidden absolute z-[60] inset-0 bg-slate-950/95 flex flex-col items-center justify-center p-6 backdrop-blur-sm">
         <div class="w-full max-w-4xl glass-panel p-1 rounded-2xl relative flex flex-col max-h-[90vh] border-2 border-slate-500 shadow-2xl">
             <!-- Header -->
@@ -593,6 +649,15 @@
         ];
 
         let arenas = []; 
+
+        // --- CREDITS LOGIC ---
+        function showCredits() {
+            document.getElementById('screen-credits').classList.remove('hidden');
+        }
+
+        function hideCredits() {
+            document.getElementById('screen-credits').classList.add('hidden');
+        }
 
         // --- ADMIN LOGIN ---
         function adminLogin() {
