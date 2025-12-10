@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SIMPO: Ultimate Duel (Split Leaderboard)</title>
+    <title>SIMPO: Ultimate Duel (Cloud Connected)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
@@ -265,8 +265,13 @@
     <div id="screen-mode" class="hidden absolute z-50 inset-0 bg-[url('https://images.unsplash.com/photo-1511512578047-dfb367046420?q=80&w=2071')] bg-cover bg-center flex flex-col items-center justify-center">
         <div class="absolute inset-0 bg-slate-950/90"></div>
         
+        <!-- ADMIN SHORTCUT (Hidden Button) -->
+        <button onclick="adminLogin()" class="absolute top-4 left-4 z-[70] w-8 h-8 opacity-20 hover:opacity-100 transition text-slate-400 hover:text-white" title="Admin Login">
+            <i class="fas fa-lock"></i>
+        </button>
+        
         <!-- Connection Status Indicator -->
-        <div class="absolute top-4 left-4 z-[70] flex items-center gap-2 bg-black/60 px-3 py-1 rounded border border-slate-700" id="connection-indicator">
+        <div class="absolute top-4 left-14 z-[70] flex items-center gap-2 bg-black/60 px-3 py-1 rounded border border-slate-700" id="connection-indicator">
             <div class="w-3 h-3 rounded-full bg-yellow-500 animate-pulse" id="conn-dot"></div>
             <span class="text-xs font-mono text-slate-300" id="conn-text">CHECKING...</span>
         </div>
@@ -334,7 +339,7 @@
                             <th class="p-4 border-r border-b border-slate-600 w-20 text-center">#</th>
                             <th class="p-4 border-r border-b border-slate-600">Player Name</th>
                             <th class="p-4 border-r border-b border-slate-600 text-right w-32">Score</th>
-                            <th class="p-4 border-b border-slate-600 text-right w-32">Date</th>
+                            <th class="p-4 border-b border-slate-600 text-right w-36">Date</th>
                         </tr>
                     </thead>
                     <tbody id="leaderboard-body" class="text-slate-300 font-mono text-sm divide-y divide-slate-700/50">
@@ -535,6 +540,7 @@
     <script>
         // --- CONFIG ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyia_axLMWaHEBu6lO-R7nM63Je7N-LqHyPaIVjgmn3pDkxB9tZupd8mG_ARI6CzBdUKA/exec";
+        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Ldnwb_vDuTiRu341jOIZdUmM5Z3eBbliMVjVLRl1NMo/edit?usp=sharing"; // ISI DENGAN LINK EDIT SHEET ANDA
 
         // FALLBACK DATA (Full Game Content)
         const defaultArenas = [
@@ -576,6 +582,20 @@
         ];
 
         let arenas = []; // Will be populated from Google Sheet or Fallback
+
+        // --- ADMIN LOGIN ---
+        function adminLogin() {
+            const pass = prompt("Masukkan Password Admin:");
+            if (pass === "admin123") {
+                if(GOOGLE_SHEET_URL.includes("YOUR_SHEET_ID")) {
+                    alert("Harap isi variabel GOOGLE_SHEET_URL di kode terlebih dahulu!");
+                } else {
+                    window.open(GOOGLE_SHEET_URL, '_blank');
+                }
+            } else if (pass) {
+                alert("Password Salah!");
+            }
+        }
 
         // --- FETCH DATA ---
         async function initGameData() {
