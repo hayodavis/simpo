@@ -82,6 +82,11 @@
             50% { stroke: #fee2e2; opacity: 0.5; }
             100% { stroke: #ef4444; opacity: 1; }
         }
+        
+        @keyframes danger-pulse {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 0.6; }
+        }
 
         @keyframes scanline {
             0% { transform: translateY(-100%); }
@@ -237,6 +242,18 @@
         }
         .leaderboard-cell {
             @apply p-4 border-r border-slate-700/50 last:border-r-0;
+        }
+
+        /* Low HP Overlay */
+        .critical-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            box-shadow: inset 0 0 50px red;
+            background: radial-gradient(circle, transparent 60%, rgba(255, 0, 0, 0.4) 100%);
+            animation: danger-pulse 1s infinite;
+            z-index: 5;
+            display: none;
         }
     </style>
 </head>
@@ -405,8 +422,13 @@
 
     <!-- 5. GAME INTERFACE -->
     <div id="game-interface" class="hidden w-full h-full flex-col relative bg-slate-950">
-        <div class="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/dark-matter.png')] opacity-50 pointer-events-none"></div>
+        <!-- Dynamic Background Container -->
+        <div id="arena-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 opacity-50 pointer-events-none"></div>
         <div class="absolute inset-0 bg-[linear-gradient(rgba(30,58,138,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.1)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
+        
+        <!-- Low HP Critical Overlay -->
+        <div id="low-hp-overlay-p1" class="critical-overlay left-0 w-1/2 hidden"></div>
+        <div id="low-hp-overlay-p2" class="critical-overlay right-0 w-1/2 hidden"></div>
 
         <!-- HEADER -->
         <div class="relative z-20 w-full h-24 flex items-start justify-center pt-2 gap-4 pointer-events-none">
@@ -540,7 +562,15 @@
     <script>
         // --- CONFIG ---
         const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyia_axLMWaHEBu6lO-R7nM63Je7N-LqHyPaIVjgmn3pDkxB9tZupd8mG_ARI6CzBdUKA/exec";
-        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Ldnwb_vDuTiRu341jOIZdUmM5Z3eBbliMVjVLRl1NMo/edit?usp=sharing"; // ISI DENGAN LINK EDIT SHEET ANDA
+        const GOOGLE_SHEET_URL = "https://docs.google.com/spreadsheets/d/1Ldnwb_vDuTiRu341jOIZdUmM5Z3eBbliMVjVLRl1NMo/edit?usp=sharing"; 
+
+        // Dynamic Backgrounds for Arenas
+        const arenaBackgrounds = [
+            "https://images.unsplash.com/photo-1480796927426-f609979314bd?q=80&w=2000", // City (Class/Obj)
+            "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?q=80&w=2000", // Matrix (Encapsulation)
+            "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2000", // Circuit (Inheritance)
+            "https://images.unsplash.com/photo-1534972195531-d756b9bfa9f2?q=80&w=2000"  // Nebula (Polymorphism)
+        ];
 
         // FALLBACK DATA (Full Game Content)
         const defaultArenas = [
@@ -549,49 +579,25 @@
                 briefing: "CLASS = CETAKAN (Blueprint). OBJECT = HASIL NYATA. Gunakan keyword 'new' untuk menciptakan object dari class.",
                 questions: [
                     { q: "Apa blueprint untuk membuat objek?", opts: [{l:"Class", c:true}, {l:"Method", c:false}, {l:"Package", c:false}] },
-                    { q: "Keyword untuk instansiasi objek?", opts: [{l:"new", c:true}, {l:"make", c:false}, {l:"create", c:false}] },
-                    { q: "Object adalah instance dari...", opts: [{l:"Class", c:true}, {l:"Interface", c:false}, {l:"Variable", c:false}] }
+                    { q: "Keyword untuk instansiasi objek?", opts: [{l:"new", c:true}, {l:"make", c:false}, {l:"create", c:false}] }
                 ]
             },
             { 
                 title: "Encapsulation", 
-                briefing: "LINDUNGI DATA SENSITIF. Gunakan 'private' untuk menyembunyikan data, dan 'public' Getter/Setter untuk akses aman.",
+                briefing: "LINDUNGI DATA SENSITIF. Gunakan 'private' untuk menyembunyikan data.",
                 questions: [
-                    { q: "Akses modifier paling ketat?", opts: [{l:"private", c:true}, {l:"public", c:false}, {l:"protected", c:false}] },
-                    { q: "Method untuk mengambil data private?", opts: [{l:"Getter", c:true}, {l:"Setter", c:false}, {l:"Constructor", c:false}] },
-                    { q: "Tujuan utama enkapsulasi?", opts: [{l:"Keamanan Data", c:true}, {l:"Kecepatan", c:false}, {l:"Memori", c:false}] }
-                ]
-            },
-            { 
-                title: "Inheritance", 
-                briefing: "WARISI SIFAT PARENT. Gunakan 'extends' agar Class Anak (Subclass) mewarisi fitur Class Induk (Superclass).",
-                questions: [
-                    { q: "Keyword pewarisan di Java?", opts: [{l:"extends", c:true}, {l:"implements", c:false}, {l:"super", c:false}] },
-                    { q: "Class induk disebut juga...", opts: [{l:"Superclass", c:true}, {l:"Subclass", c:false}, {l:"Child", c:false}] },
-                    { q: "Bisakah mewarisi multiple class?", opts: [{l:"Tidak", c:true}, {l:"Bisa", c:false}, {l:"Tergantung", c:false}] }
-                ]
-            },
-            { 
-                title: "Polymorphism", 
-                briefing: "SATU AKSI, BEDA PERILAKU. Overriding mengubah isi method dari Parent agar sesuai dengan kebutuhan Child.",
-                questions: [
-                    { q: "Method sama, implementasi beda di subclass disebut?", opts: [{l:"Overriding", c:true}, {l:"Overloading", c:false}, {l:"Shadowing", c:false}] },
-                    { q: "Overloading terjadi jika...", opts: [{l:"Param Beda", c:true}, {l:"Param Sama", c:false}, {l:"Return Beda", c:false}] }
+                    { q: "Akses modifier paling ketat?", opts: [{l:"private", c:true}, {l:"public", c:false}, {l:"protected", c:false}] }
                 ]
             }
         ];
 
-        let arenas = []; // Will be populated from Google Sheet or Fallback
+        let arenas = []; 
 
         // --- ADMIN LOGIN ---
         function adminLogin() {
             const pass = prompt("Masukkan Password Admin:");
             if (pass === "admin123") {
-                if(GOOGLE_SHEET_URL.includes("YOUR_SHEET_ID")) {
-                    alert("Harap isi variabel GOOGLE_SHEET_URL di kode terlebih dahulu!");
-                } else {
-                    window.open(GOOGLE_SHEET_URL, '_blank');
-                }
+                window.open(GOOGLE_SHEET_URL, '_blank');
             } else if (pass) {
                 alert("Password Salah!");
             }
@@ -604,7 +610,6 @@
             const connDot = document.getElementById('conn-dot');
             const connText = document.getElementById('conn-text');
             
-            // AbortController for Timeout (Increased to 15s)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 15000); 
 
@@ -616,29 +621,22 @@
                     credentials: 'omit' // Prevent cookie issues
                 });
                 
-                // If it returns HTML (Login Page), it means permissions are wrong
                 const contentType = response.headers.get("content-type");
                 if (contentType && contentType.indexOf("application/json") === -1) {
-                    throw new Error("Permission Error (Check Apps Script)");
+                    throw new Error("Permission Error");
                 }
 
                 const data = await response.json();
                 
-                // Check specific error from script
-                if (data.error) {
-                    throw new Error("Server Error: " + data.error);
-                }
+                if (data.error) throw new Error("Server Error: " + data.error);
 
                 if (Array.isArray(data) && data.length > 0) {
                     arenas = data;
                     statusEl.innerText = "Data Loaded Successfully!";
                     statusEl.classList.add('text-green-400');
-                    
-                    // Update UI Indicator
                     connDot.classList.replace('bg-yellow-500', 'bg-green-500');
                     connText.innerText = "ONLINE";
                     connText.classList.replace('text-slate-300', 'text-green-300');
-
                     setTimeout(() => {
                         document.getElementById('screen-loading').classList.add('hidden');
                         document.getElementById('screen-mode').classList.remove('hidden');
@@ -650,13 +648,10 @@
                 console.warn("Using Offline Data:", err); 
                 statusEl.innerText = "Offline Mode: " + err.message;
                 statusEl.classList.add('text-red-400');
-                
-                // Update UI Indicator
                 connDot.classList.replace('bg-yellow-500', 'bg-red-500');
                 connText.innerText = "OFFLINE MODE";
                 connText.classList.replace('text-slate-300', 'text-red-300');
-
-                arenas = defaultArenas; // Use Full Fallback
+                arenas = defaultArenas; 
                 setTimeout(() => {
                     document.getElementById('screen-loading').classList.add('hidden');
                     document.getElementById('screen-mode').classList.remove('hidden');
@@ -669,10 +664,8 @@
         // --- SAVE SCORE ---
         function saveScoreToCloud(winnerName) {
             if (!GOOGLE_SCRIPT_URL) return;
-
             const statusEl = document.getElementById('save-status');
             statusEl.innerText = "Menyimpan Data Skor...";
-
             const payload = {
                 mode: state.mode,
                 p1Name: state.p1.name,
@@ -681,10 +674,8 @@
                 p2Score: state.p2.score,
                 winner: winnerName
             };
-
             fetch(GOOGLE_SCRIPT_URL, {
-                method: "POST",
-                mode: "no-cors", 
+                method: "POST", mode: "no-cors", 
                 headers: { "Content-Type": "text/plain" }, 
                 body: JSON.stringify(payload)
             }).then(() => {
@@ -701,7 +692,6 @@
         function showLeaderboard() {
             document.getElementById('screen-mode').classList.add('hidden');
             document.getElementById('screen-leaderboard').classList.remove('hidden');
-            // Default load single rank
             fetchRankData('single');
         }
 
@@ -711,21 +701,17 @@
             const tabMulti = document.getElementById('tab-multi');
             const subtitle = document.getElementById('leaderboard-subtitle');
 
-            // Update Tabs UI
             if (mode === 'single') {
-                tabSingle.classList.add('active-single');
-                tabMulti.classList.remove('active-multi');
+                tabSingle.classList.add('active-single'); tabMulti.classList.remove('active-multi');
                 subtitle.innerText = "Top Solo Players (High Score)";
             } else {
-                tabMulti.classList.add('active-multi');
-                tabSingle.classList.remove('active-single');
+                tabMulti.classList.add('active-multi'); tabSingle.classList.remove('active-single');
                 subtitle.innerText = "Top PvP Duelists (High Score)";
             }
 
             tbody.innerHTML = '<tr><td colspan="4" class="text-center p-8">Fetching Data...</td></tr>';
 
             try {
-                // Pass mode to Apps Script
                 const response = await fetch(GOOGLE_SCRIPT_URL + "?action=leaderboard&mode=" + mode);
                 const data = await response.json();
                 
@@ -976,6 +962,10 @@
             document.getElementById('screen-briefing').classList.remove('hidden');
             document.getElementById('screen-briefing').classList.add('flex');
             
+            // Set dynamic background for the arena
+            const bgUrl = arenaBackgrounds[state.arenaIdx % arenaBackgrounds.length];
+            document.getElementById('arena-bg').style.backgroundImage = `url('${bgUrl}')`;
+            
             document.getElementById('briefing-title').innerText = arena.title;
             document.getElementById('briefing-desc').innerText = arena.briefing;
             
@@ -1223,13 +1213,24 @@
             }
             setTimeout(() => nextQuestion(), 1000);
         }
+        
         function updateHP() {
+            // Helper for critical health
+            const checkCritical = (hp, overlayId) => {
+                const el = document.getElementById(overlayId);
+                if (hp > 0 && hp <= 30) el.classList.remove('hidden');
+                else el.classList.add('hidden');
+            };
+
             if (state.mode === 'single') {
                  document.getElementById('sp-hp-hero').style.width = Math.max(0, state.p1.hp) + "%";
                  document.getElementById('sp-hp-enemy').style.width = Math.max(0, state.p2.hp) + "%";
+                 checkCritical(state.p1.hp, 'low-hp-overlay-p1');
             } else {
                  document.getElementById('mp-hp-p1').style.width = Math.max(0, state.p1.hp) + "%";
                  document.getElementById('mp-hp-p2').style.width = Math.max(0, state.p2.hp) + "%";
+                 checkCritical(state.p1.hp, 'low-hp-overlay-p1');
+                 checkCritical(state.p2.hp, 'low-hp-overlay-p2');
             }
         }
         function updateScores() {
@@ -1258,11 +1259,14 @@
             sfx.win();
             document.getElementById('game-interface').classList.add('hidden');
             document.getElementById('screen-end').classList.remove('hidden');
-            document.getElementById('end-title').innerText = isWin ? "VICTORY!" : "GAME OVER";
+            
+            // Set Avatar Reaction
+            const emoji = isWin ? "🏆" : "☠️";
+            document.getElementById('end-title').innerHTML = `${emoji} ${isWin ? "VICTORY!" : "GAME OVER"}`;
+            
             document.getElementById('end-title').className = `text-7xl font-moba mb-4 ${isWin ? 'text-cyan-400' : 'text-red-500'}`;
             document.getElementById('end-desc').innerText = isWin ? "Anda telah menguasai semua arena." : "Logika Anda error. Coba lagi!";
             
-            // Save to Sheet (Single Player)
             const winnerName = isWin ? state.p1.name : "Bug Lord";
             saveScoreToCloud(winnerName);
         }
@@ -1273,11 +1277,12 @@
             document.getElementById('screen-end').classList.remove('hidden');
             const p1Win = state.p1.hp > 0;
             const winner = p1Win ? state.p1.name : state.p2.name;
-            document.getElementById('end-title').innerText = "WINNER!";
+            const emoji = "👑";
+            
+            document.getElementById('end-title').innerHTML = `${emoji} WINNER!`;
             document.getElementById('end-title').className = `text-7xl font-moba mb-4 ${p1Win ? 'text-cyan-400' : 'text-red-500'}`;
             document.getElementById('end-desc').innerText = `Selamat ${winner}!\nCoding Master Sejati.`;
             
-            // Save to Sheet (Multi Player)
             saveScoreToCloud(winner);
         }
     </script>
