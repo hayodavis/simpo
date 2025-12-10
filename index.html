@@ -82,15 +82,16 @@
             50% { stroke: #fee2e2; opacity: 0.5; }
             100% { stroke: #ef4444; opacity: 1; }
         }
-        
-        @keyframes danger-pulse {
-            0%, 100% { opacity: 0; }
-            50% { opacity: 0.6; }
-        }
 
         @keyframes scanline {
             0% { transform: translateY(-100%); }
             100% { transform: translateY(100%); }
+        }
+
+        @keyframes danger-pulse {
+            0% { box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.3); }
+            50% { box-shadow: inset 0 0 100px rgba(255, 0, 0, 0.8); }
+            100% { box-shadow: inset 0 0 30px rgba(255, 0, 0, 0.3); }
         }
 
         .hero-float { animation: float 3s ease-in-out infinite; }
@@ -244,16 +245,16 @@
             @apply p-4 border-r border-slate-700/50 last:border-r-0;
         }
 
-        /* Low HP Overlay */
+        /* Low HP Overlay (FIXED) */
         .critical-overlay {
             position: absolute;
             inset: 0;
             pointer-events: none;
-            box-shadow: inset 0 0 50px red;
-            background: radial-gradient(circle, transparent 60%, rgba(255, 0, 0, 0.4) 100%);
+            /* Remove display: none to allow JS to control 'hidden' class */
+            /* Z-index 15 puts it above sprites (z-10) but below HUD (z-20) */
+            z-index: 15; 
             animation: danger-pulse 1s infinite;
-            z-index: 5;
-            display: none;
+            background: radial-gradient(circle, transparent 60%, rgba(255, 0, 0, 0.4) 100%);
         }
     </style>
 </head>
@@ -426,7 +427,7 @@
         <div id="arena-bg" class="absolute inset-0 bg-cover bg-center transition-all duration-1000 opacity-50 pointer-events-none"></div>
         <div class="absolute inset-0 bg-[linear-gradient(rgba(30,58,138,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(30,58,138,0.1)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
         
-        <!-- Low HP Critical Overlay -->
+        <!-- Low HP Critical Overlay (UPDATED) -->
         <div id="low-hp-overlay-p1" class="critical-overlay left-0 w-1/2 hidden"></div>
         <div id="low-hp-overlay-p2" class="critical-overlay right-0 w-1/2 hidden"></div>
 
@@ -989,6 +990,10 @@
             document.getElementById('game-interface').classList.remove('hidden');
             document.getElementById('game-interface').classList.add('flex');
             
+            // Reset overlay visibility (Fix stuck overlay)
+            document.getElementById('low-hp-overlay-p1').classList.add('hidden');
+            document.getElementById('low-hp-overlay-p2').classList.add('hidden');
+
             if (state.mode === 'single') {
                 document.getElementById('view-single').classList.remove('hidden');
                 document.getElementById('controls-single').classList.remove('hidden');
@@ -1218,8 +1223,23 @@
             // Helper for critical health
             const checkCritical = (hp, overlayId) => {
                 const el = document.getElementById(overlayId);
-                if (hp > 0 && hp <= 30) el.classList.remove('hidden');
-                else el.classList.add('hidden');
+                // In Single Player, P1 takes full screen overlay
+                if (state.mode === 'single' && overlayId === 'low-hp-overlay-p1') {
+                    if (hp > 0 && hp <= 30) {
+                        el.classList.remove('hidden', 'w-1/2'); // Remove w-1/2
+                        el.classList.add('w-full'); // Make full width
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                } else {
+                    // Multiplayer logic stays split
+                    if (hp > 0 && hp <= 30) {
+                        el.classList.remove('hidden');
+                        el.classList.add(overlayId === 'low-hp-overlay-p1' ? 'left-0' : 'right-0');
+                    } else {
+                        el.classList.add('hidden');
+                    }
+                }
             };
 
             if (state.mode === 'single') {
